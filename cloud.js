@@ -58,6 +58,30 @@ async function saveCloudLimits(limits){
   cloudSetStatus('개인 주량 설정이 계정에 동기화됐어요.');
  }catch(err){cloudSetStatus('주량 설정 클라우드 저장 실패: '+err.message+' · 이 기기에는 저장돼 있어요.')}
 }
+async function saveCloudPledge(value){
+ if(!cloudClient||!cloudUser){pledgeFeedback.textContent='이 브라우저에만 저장되었습니다.';return}
+ try{
+  const {data:result,error}=await cloudClient.auth.updateUser({data:{personal_pledge:value}});
+  if(error)throw error;
+  cloudUser=result.user||cloudUser;
+  pledgeFeedback.textContent='계정에 저장되었습니다. 다른 기기에서도 볼 수 있어요.';
+ }catch(err){pledgeFeedback.textContent='이 브라우저에는 저장됐지만 계정 동기화에 실패했습니다: '+err.message}
+}
+async function pullCloudPledge(){
+ if(!cloudClient||!cloudUser)return;
+ const {data:result,error}=await cloudClient.auth.getUser();
+ if(error)throw error;
+ if(!result.user||result.user.id!==cloudUser.id)return;
+ cloudUser=result.user;
+ const remote=cloudUser.user_metadata?.personal_pledge;
+ if(typeof remote==='string'){
+  personalPledge=remote;
+  localStorage.setItem(PLEDGE_KEY,remote);
+  renderPledge();
+ }else if(personalPledge){
+  await saveCloudPledge(personalPledge);
+ }
+}
 async function pullCloudLimits(){
  if(!cloudClient||!cloudUser)return;
  const {data:result,error}=await cloudClient.auth.getUser();
@@ -96,7 +120,7 @@ async function pullCloud(){if(!cloudUser)return;cloudReady=false;cloudSetStatus(
   cloudSetStatus('기록 차이 '+conflicts.length+'일: 클라우드 기록을 우선 적용하고 이 기기의 이전 기록을 복구용으로 보관했어요.');
  }
  data={...local,...remote};
- localStorage.setItem(KEY,JSON.stringify(data));await pullCloudLimits();render();cloudReady=true;await pushCloud();
+ localStorage.setItem(KEY,JSON.stringify(data));await pullCloudLimits();await pullCloudPledge();render();cloudReady=true;await pushCloud();
  }catch(err){cloudSetStatus('클라우드 불러오기 실패: '+err.message+' · 로컬 기록은 유지돼요.');cloudReady=false}}
 async function setupCloud(){
  if(!window.SOBER_SUPABASE_URL||!window.SOBER_SUPABASE_PUBLISHABLE_KEY){cloudSetStatus('클라우드 미설정 · 현재 브라우저에만 저장 중 (config.js 설정 필요)');return}
