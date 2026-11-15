@@ -413,6 +413,8 @@ header.system-header{padding-top:20px;padding-bottom:20px}
 const KEY='sober-calendar-v1';let data={};try{data=JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch{};let now=new Date(),today=key(now);let year=now.getFullYear(),month=now.getMonth(),selected=null;const multiSelected=new Set();let selectionAnchor=null;
 const types={beer:'🍺 맥주',wine:'🍷 와인',soju:'🟢 소주',liquor:'🥃 위스키·칵테일',cheongju:'🍶 청주·약주',takju:'🥛 탁주',sake:'🌸 사케',other:'✎ 직접 입력'};const units={beer:[['smallcan','작은 캔 (355mL)'],['largecan','큰 캔 (500mL)'],['bottle','병 (330mL)'],['glass','잔 (500mL)'],['ml','직접 입력 (mL)']],wine:[['glass','잔 (150mL)'],['half','반 병 (375mL)'],['bottle','병 (750mL)'],['ml','직접 입력 (mL)']],soju:[['shot','잔 (50mL)'],['half','반 병 (180mL)'],['bottle','병 (360mL)'],['ml','직접 입력 (mL)']],liquor:[['glass','잔'],['half','반 병'],['bottle','한 병'],['ml','직접 입력 (mL)']],whisky:[['glass','잔'],['half','반 병'],['bottle','한 병'],['ml','직접 입력 (mL)']],cocktail:[['glass','잔'],['half','반 병'],['bottle','한 병'],['ml','직접 입력 (mL)']],cheongju:[['glass','잔'],['half','반 병'],['bottle','한 병'],['ml','직접 입력 (mL)']],takju:[['glass','잔'],['half','반 병'],['bottle','한 병'],['ml','직접 입력 (mL)']],sake:[['glass','잔'],['half','반 병'],['bottle','한 병'],['ml','직접 입력 (mL)']],spirits:[['shot','샷 (45mL)'],['glass','잔 (90mL)'],['ml','직접 입력 (mL)']],other:[['ml','직접 입력 (mL)']]};
 function key(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}function save(){localStorage.setItem(KEY,JSON.stringify(data));scheduleCloudSave()}function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function getDay(k){return data[k]||{status:'unknown',sessions:[]}}function setDay(k,v){data[k]=v;save();render()}
+function isRecordedDay(k){const v=getDay(k);return v.status==='dry'||(v.status==='drink'&&(v.sessions||[]).length>0)}
+function analysisDate(offset){const d=new Date(now.getFullYear(),now.getMonth(),now.getDate());d.setDate(d.getDate()-offset-(isRecordedDay(today)?0:1));return d}
 // Browser-native navigation warning only for locally recorded days without an authenticated account.
 window.addEventListener('beforeunload',event=>{
  if(typeof cloudUser!=='undefined'&&cloudUser)return;
@@ -441,12 +443,12 @@ function updateBulk(){
  done.hidden=!n||unknown.length>0||dry.length>0;
  done.textContent=drinking.length===n?'음주 신고 완료':'금주 처리 완료';
 }
-document.getElementById('bulkClear').onclick=()=>{const keys=[...multiSelected].filter(k=>k<=key(new Date())&&getDay(k).status==='dry');if(!keys.length)return;if(!confirm(`선택한 금주일 ${keys.length}일을 미기록으로 변경할까요?`))return;for(const k of keys)data[k]={status:'unknown',sessions:[]};save();multiSelected.clear();selectionAnchor=null;render()};
-document.getElementById('bulkDry').onclick=()=>{const keys=[...multiSelected].filter(k=>k<=key(new Date())&&getDay(k).status==='unknown');if(!keys.length)return;for(const k of keys)data[k]={status:'dry',sessions:[]};save();multiSelected.clear();selectionAnchor=null;render()};
+document.getElementById('bulkClear').onclick=()=>{const keys=[...multiSelected].filter(k=>k<=key(new Date())&&getDay(k).status==='dry');if(!keys.length)return;if(!confirm(`선택한 금주일 ${keys.length}일을 미기록으로 변경할까요?`))return;for(const k of keys){data[k]={status:'unknown',sessions:[]};if(editorDraftKey===k){editorDraft=null;editorDraftKey=null}}save();multiSelected.clear();selectionAnchor=null;render()};
+document.getElementById('bulkDry').onclick=()=>{const keys=[...multiSelected].filter(k=>k<=key(new Date())&&getDay(k).status==='unknown');if(!keys.length)return;for(const k of keys){data[k]={status:'dry',sessions:[]};if(editorDraftKey===k){editorDraft=null;editorDraftKey=null}}save();multiSelected.clear();selectionAnchor=null;render()};
 function renderMonthSummary(){
  const monthStart=new Date(year,month,1),todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate());
  const total=new Date(year,month+1,0).getDate(),isCurrent=year===now.getFullYear()&&month===now.getMonth();
- const lastDay=monthStart>=todayStart?0:isCurrent?now.getDate()-1:total;
+ const lastDay=monthStart>todayStart?0:isCurrent?now.getDate()-(isRecordedDay(today)?0:1):total;
  if(!lastDay){document.getElementById('monthSummary').textContent=isCurrent?'어제까지 집계할 날짜가 없습니다.':'아직 집계할 날짜가 없습니다.';return}
  let drink=0,dry=0,over=0,unclassified=0;
  for(let day=1;day<=lastDay;day++){
@@ -458,7 +460,7 @@ function renderMonthSummary(){
   if(ratio===null)unclassified++;else if(ratio>=1)over++;
  }
  const extra=unclassified?' <span class="summary-warning">(과음 판정 불가 '+unclassified+'일)</span>':'';
- const period=isCurrent?'어제까지 <strong>'+lastDay+'일</strong> 중':'총 <strong>'+total+'일</strong> 중';
+ const period=isCurrent?(isRecordedDay(today)?'오늘까지 <strong>':'어제까지 <strong>')+lastDay+'일</strong> 중':'총 <strong>'+total+'일</strong> 중';
  document.getElementById('monthSummary').innerHTML=period+' · <strong>음주 '+drink+'일</strong> · <strong>금주 '+dry+'일</strong> · <strong class="summary-over">과음 '+over+'일</strong>'+extra;
 }
 function render(){if(editorDraftKey!==selected){editorDraft=null;editorDraftKey=null}document.getElementById('month').textContent=`${year}년 ${month+1}월`;let first=new Date(year,month,1).getDay(),length=new Date(year,month+1,0).getDate(),html=['일','월','화','수','목','금','토'].map(x=>`<div class="weekday">${x}</div>`).join('');for(let i=0;i<first;i++)html+='<div class="day empty"></div>';for(let d=1;d<=length;d++){let k=key(new Date(year,month,d)),v=getDay(k);let sessions=v.sessions||[],solo=sessions.some(x=>x.company==='solo'),withOthers=sessions.some(x=>x.company!=='solo'),kind=v.status==='dry'?'dry':v.status!=='drink'||!sessions.length?'unknown':withOthers?'with':'solo';let overDay=v.status==='drink'&&sessions.length>0&&dailyLimitRatio(v)>=1;let pills=v.status==='dry'?'<span class="pill dry">✓ 금주</span>':v.status==='drink'?v.sessions.map(s=>`<span class="pill ${s.after?'after':s.company==='solo'?'solo':''}">${s.after?'🔴 귀가 후 추가 음주 · ':s.company==='solo'?'🏠 혼술 · ':'🍻 술자리 · '}<span class="drinkdetail">${(s.drinks||[]).map(shortDrink).map(esc).join('<br>')||'술 미입력'}</span></span>`).join(''):'<span class="pill unknown">미기록</span>';html+=`<div class="day ${k===today?'today':''} ${k===selected?'selected':''} kind-${kind} ${overDay?'kind-over':''} ${multiSelected.has(k)?'multi-selected':''}"><button type="button" class="day-main" data-day="${k}"><span class="number">${d}${k===today?'<span class="today-badge">오늘</span>':''}${overDay?'<span class="over-day-badge">과음</span>':''}</span>${pills}</button></div>`}document.getElementById('calendar').innerHTML=html;renderMonthSummary();document.querySelectorAll('[data-day]').forEach(b=>b.onclick=e=>{const k=b.dataset.day;if(e.shiftKey){const anchor=selectionAnchor||selected||k;const start=new Date(anchor+'T12:00:00');const end=new Date(k+'T12:00:00');if(!(e.ctrlKey||e.metaKey))multiSelected.clear();const lo=start<end?start:end,hi=start<end?end:start;for(let t=new Date(lo);t<=hi;t.setDate(t.getDate()+1)){const tk=key(t);if(tk<=key(new Date()))multiSelected.add(tk);}}else if(e.ctrlKey||e.metaKey){if(multiSelected.has(k))multiSelected.delete(k);else if(k<=key(new Date()))multiSelected.add(k);selectionAnchor=k;}else{selected=k;selectionAnchor=k;multiSelected.clear();if(k<=key(new Date()))multiSelected.add(k);}render()});updateBulk();renderStats();renderEditor()}
@@ -468,10 +470,10 @@ function renderStats(){
  const names={after:'귀가 후 추가 음주',solo:'혼술',with:'술자리',mixed:'혼술+술자리',dry:'금주',unknown:'미기록'};
  const order=['solo','with','after','dry','unknown'];
  const todayDate=new Date(now.getFullYear(),now.getMonth(),now.getDate());
- const recent30Known=Array.from({length:30},(_,i)=>{const d=new Date(todayDate);d.setDate(d.getDate()-i);const v=getDay(key(d));return v.status==='dry'||(v.status==='drink'&&(v.sessions||[]).length>0)}).filter(Boolean).length;
+ const recent30Known=Array.from({length:30},(_,i)=>{const d=analysisDate(i);const v=getDay(key(d));return v.status==='dry'||(v.status==='drink'&&(v.sessions||[]).length>0)}).filter(Boolean).length;
  function oneWindow(days,label){
   const counts={after:0,solo:0,with:0,mixed:0,dry:0,unknown:0};
-  for(let i=days-1;i>=0;i--){const date=new Date(todayDate);date.setDate(date.getDate()-i-1);const v=getDay(key(date));
+  for(let i=days-1;i>=0;i--){const date=analysisDate(i);const v=getDay(key(date));
    if(v.status==='dry'){counts.dry++;continue}
    if(v.status!=='drink'||!(v.sessions||[]).length){counts.unknown++;continue}
    const sessions=v.sessions||[];
@@ -577,7 +579,7 @@ function renderExtraStats(){
  function weeklyWindow(length,label){
   const counts={light:0,half:0,over:0,unknown:0,known:0,drink:0,failures:[],missingDates:[]};
   for(let i=length-1;i>=0;i--){
-   const date=new Date(now.getFullYear(),now.getMonth(),now.getDate()-i-1),v=getDay(key(date));
+   const date=analysisDate(i),v=getDay(key(date));
    if(v.status==='unknown'||(v.status==='drink'&&!(v.sessions||[]).length)){counts.missingDates.push(key(date));continue;}
    counts.known++;
    if(v.status!=='drink')continue;
@@ -600,7 +602,7 @@ function renderExtraStats(){
    const date=new Date(now.getFullYear(),now.getMonth()-offset,1),y=date.getFullYear(),m=date.getMonth();
    const days=new Date(y,m+1,0).getDate(),counts={light:0,caution:0,over:0,unknown:0,missing:0,missingDates:[]};
    for(let d=1;d<=days;d++){
-    const day=new Date(y,m,d);if(day>=new Date(now.getFullYear(),now.getMonth(),now.getDate()))continue;
+    const day=new Date(y,m,d);if(day>new Date(now.getFullYear(),now.getMonth(),now.getDate())||(key(day)===today&&!isRecordedDay(today)))continue;
     const v=getDay(key(day));
     if(v.status==='unknown'||(v.status==='drink'&&!(v.sessions||[]).length)){counts.missing++;counts.missingDates.push(key(day));continue}
     if(v.status!=='drink')continue;
@@ -654,8 +656,8 @@ function renderEditor(){
  if(!sessions.length&&editorDraftKey===selected&&editorDraft){h+='<div class="session-actions"><div class="session-submit-help"><span>용량 참고 · 소주 1병 360mL · 맥주 1병 330~500mL · 위스키(글렌피딕 등) 1병 700mL · 서울의 밤 1병 375mL (제품별 상이, 라벨 확인)</span><span>※ 나눠 마신 인원에는 본인이 포함됩니다. 1명 입력 시 전량 음주로 계산됩니다.</span></div><div class="session-action-buttons"><span class="filing-status pending">◷ 삭제 미접수</span><button class="primary" id="saveDay">삭제 내용 제출</button><button id="cancelDay">수정 취소</button></div></div>'}
  h+='<button class="primary compact-add-session" id="addSession">'+(sessions.length?'+ 음주 내역 추가 신고':'+ 음주 내역 신고')+'</button>';
  document.getElementById('editor').innerHTML=h;
- document.querySelectorAll('[data-delete-session]').forEach(b=>b.onclick=()=>{let a=structuredClone(editorDraftKey===selected&&editorDraft?editorDraft:getDay(selected));a.sessions.splice(+b.dataset.deleteSession,1);editDay(selected,a.sessions.length?{status:'drink',sessions:a.sessions}:{status:'unknown',sessions:[]})});
- document.getElementById('saveDay')?.addEventListener('click',e=>{e.stopPropagation();if(editorDraftKey===selected&&editorDraft){const v=editorDraft;editorDraft=null;editorDraftKey=null;setDay(selected,v)}else{renderEditor()}});
+ document.querySelectorAll('[data-delete-session]').forEach(b=>b.onclick=()=>{let a=structuredClone(editorDraftKey===selected&&editorDraft?editorDraft:getDay(selected));a.sessions.splice(+b.dataset.deleteSession,1);editDay(selected,a.sessions.length?{status:'drink',sessions:a.sessions}:{status:getDay(selected).status==='dry'?'dry':'unknown',sessions:[]})});
+ document.getElementById('saveDay')?.addEventListener('click',e=>{e.stopPropagation();if(editorDraftKey===selected&&editorDraft){const v=editorDraft;if(getDay(selected).status==='dry'&&v.status==='drink'&&!confirm('금주 처리를 해제하고 음주 신고서를 제출할까요?'))return;editorDraft=null;editorDraftKey=null;setDay(selected,v)}else{renderEditor()}});
  document.getElementById('cancelDay')?.addEventListener('click',()=>{editorDraft=null;editorDraftKey=null;renderEditor()});
  document.getElementById('addSession').onclick=()=>{let a=structuredClone(editorDraftKey===selected&&editorDraft?editorDraft:getDay(selected));if(a.status==='dry'&&!confirm('금주 체크를 해제하고 음주 세션을 추가할까요?'))return;let ss=a.status==='drink'?(a.sessions||[]):[];ss.push(newSession());editDay(selected,{status:'drink',sessions:ss})};
  document.querySelectorAll('[data-add-drink]').forEach(b=>b.onclick=()=>{let a=structuredClone(editorDraftKey===selected&&editorDraft?editorDraft:getDay(selected));a.sessions[+b.dataset.addDrink].drinks.push({type:'beer',unit:'smallcan',qty:1});editDay(selected,a)});
