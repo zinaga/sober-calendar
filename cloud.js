@@ -3,6 +3,7 @@ let cloudClient=null, cloudUser=null, cloudTimer=null, cloudBusy=false, cloudRea
 const cloudStatus=document.getElementById('cloudStatus');
 const cloudSetStatus=(msg)=>{cloudStatus.textContent=msg};
 const cloudLogin=document.getElementById('login');
+const loginSent=document.getElementById('loginSent');
 const cloudLogout=document.getElementById('logout');
 const cloudSync=document.getElementById('syncNow');
 const cloudEmail=document.getElementById('email');
@@ -103,7 +104,7 @@ async function setupCloud(){
  cloudClient.auth.onAuthStateChange((_event,session)=>{const old=cloudUser?.id;cloudUser=session?.user||null;updateCloudUI();if(cloudUser&&old!==cloudUser.id)setTimeout(()=>void pullCloud(),0);if(!cloudUser){cloudReady=false;cloudSetStatus('로그아웃됨 · 브라우저에만 저장 중')}});
  const {data:sessionInfo}=await cloudClient.auth.getSession();if(sessionInfo.session){cloudUser=sessionInfo.session.user;updateCloudUI();await pullCloud()}else cloudSetStatus('이메일로 로그인하면 클라우드 동기화가 시작돼요.');
 }
-cloudLogin.onclick=async()=>{const email=cloudEmail.value.trim();if(!email){alert('이메일 주소를 입력해 주세요.');return}try{const {error}=await cloudClient.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});if(error)throw error;cloudSetStatus('로그인 링크를 이메일로 보냈어요. 메일에서 링크를 열어 주세요.')}catch(e){cloudSetStatus('로그인 오류: '+e.message)}};
+cloudLogin.onclick=async()=>{loginSent.hidden=true;const email=cloudEmail.value.trim();if(!email){alert('이메일 주소를 입력해 주세요.');return}try{const {error}=await cloudClient.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});if(error)throw error;cloudSetStatus('로그인 링크를 이메일로 보냈어요. 메일에서 링크를 열어 주세요.');loginSent.hidden=false}catch(e){cloudSetStatus('로그인 오류: '+e.message)}};
 cloudLogout.onclick=async()=>{if(cloudClient)await cloudClient.auth.signOut()};
 cloudSync.onclick=async()=>{if(cloudUser&&!cloudBusy)await pullCloud()};
 void setupCloud();
