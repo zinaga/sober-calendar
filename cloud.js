@@ -114,7 +114,7 @@ function downloadCloudSnapshot(days,source){
 function chooseCloudConflict(local,remote,conflicts){
  return new Promise(resolve=>{
   const dlg=document.createElement('dialog');dlg.className='sync-conflict-dialog';
-  const dates=conflicts.slice().sort().map(d=>{const m=/^\\d{4}-(\\d{2})-(\\d{2})$/.exec(d);return m?Number(m[1])+'월 '+Number(m[2])+'일':d});
+  const dates=conflicts.slice().sort().map(d=>{const m=/^\d{4}-(\d{2})-(\d{2})$/.exec(d);return m?Number(m[1])+'월 '+Number(m[2])+'일':d});
   const dateSummary=dates.length<=8?dates.join(', '):dates.slice(0,8).join(', ')+' 외 '+(dates.length-8)+'일';
   dlg.innerHTML='<form method="dialog"><h3>서로 다른 신고 기록이 발견되었습니다</h3><p>이 기기와 클라우드에 저장된 기록 중 <strong>'+conflicts.length+'일</strong>의 내용이 서로 다릅니다.</p><p class="conflict-dates">충돌 날짜: '+dateSummary+'</p><p>어떤 기록을 남길지 선택해 주세요. <strong>충돌하지 않는 날짜의 기록은 모두 유지됩니다.</strong></p><div class="conflict-backup"><strong>선택 전 기록 백업 (선택 사항)</strong><div class="sync-conflict-actions"><button type="button" data-action="download-local">기기 기록 백업</button><button type="button" data-action="download-cloud">클라우드 기록 백업</button></div></div><p><strong>서로 다른 날짜의 기록 중 어느 쪽을 남길까요?</strong></p><div class="conflict-choice-list"><button type="button" data-action="local"><strong>이 기기의 기록을 우선 적용</strong><small>충돌하는 날짜에는 현재 기기에 저장된 내용을 남깁니다.</small></button><button type="button" data-action="remote"><strong>클라우드 기록을 우선 적용</strong><small>충돌하는 날짜에는 클라우드에 저장된 내용을 남깁니다.</small></button></div><button type="button" class="conflict-cancel" data-action="cancel">나중에 결정 — 기록을 변경하지 않고 동기화를 중단합니다.</button></form>';
   document.body.appendChild(dlg);let settled=false;
