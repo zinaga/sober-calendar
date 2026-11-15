@@ -11,26 +11,40 @@ const headerIdentity=document.getElementById('headerIdentity');
 const headerReporter=document.getElementById('headerReporter');
 const headerAccountEmail=document.getElementById('headerAccountEmail');
 function reporterName(){return String(cloudUser?.user_metadata?.reporter_name||'').trim()}
-async function changeReporterName(){
+const headerReporterEdit=document.getElementById('headerReporterEdit');
+const reporterDialog=document.getElementById('reporterDialog');
+const reporterForm=document.getElementById('reporterForm');
+const reporterNameInput=document.getElementById('reporterNameInput');
+const reporterCancel=document.getElementById('reporterCancel');
+const reporterSave=document.getElementById('reporterSave');
+const reporterError=document.getElementById('reporterError');
+function openReporterEditor(){
+ if(!cloudUser||!cloudClient){cloudSetStatus('이름을 변경하려면 먼저 로그인해 주세요.');return}
+ reporterNameInput.value=reporterName();
+ reporterError.hidden=true;reporterError.textContent='';
+ if(!reporterDialog.open)reporterDialog.showModal();
+ reporterNameInput.focus();
+}
+reporterCancel.onclick=()=>reporterDialog.close();
+reporterDialog.addEventListener('click',e=>{if(e.target===reporterDialog)reporterDialog.close()});
+reporterForm.addEventListener('submit',async e=>{
+ e.preventDefault();
  if(!cloudUser||!cloudClient)return;
- const value=window.prompt('신고자 이름을 입력해 주세요. (언제든 변경할 수 있습니다)',reporterName());
- if(value===null)return;
- const name=value.trim();
- if(!name){alert('이름을 입력해 주세요.');return}
- if(name.length>40){alert('이름은 40자 이내로 입력해 주세요.');return}
- editReporter.disabled=true;
+ const name=reporterNameInput.value.trim();
+ if(!name||name.length>40){reporterError.textContent='이름을 1~40자로 입력해 주세요.';reporterError.hidden=false;return}
+ reporterSave.disabled=true;
  try{
   const {data:result,error}=await cloudClient.auth.updateUser({data:{reporter_name:name}});
   if(error)throw error;
   cloudUser=result.user||cloudUser;
   updateCloudUI();
-  cloudSetStatus('신고자 이름이 저장됐어요. 모든 기기에서 같은 이름을 사용합니다.');
- }catch(e){cloudSetStatus('이름 저장 실패: '+e.message)}
- finally{editReporter.disabled=false}
-}
-editReporter.onclick=()=>void changeReporterName();
-const headerReporterEdit=document.getElementById('headerReporterEdit');
-headerReporterEdit.onclick=()=>void changeReporterName();
+  reporterDialog.close();
+  cloudSetStatus('신고자 이름이 저장됐어요. 다른 기기에서도 같은 이름을 사용합니다.');
+ }catch(err){reporterError.textContent='이름 저장 실패: '+err.message;reporterError.hidden=false}
+ finally{reporterSave.disabled=false}
+});
+editReporter.addEventListener('click',openReporterEditor);
+headerReporterEdit.addEventListener('click',openReporterEditor);
 
 function updateCloudUI(){cloudLogin.hidden=!!cloudUser;cloudEmail.hidden=!!cloudUser;cloudLogout.hidden=!cloudUser;cloudSync.hidden=!cloudUser;editReporter.hidden=!cloudUser;headerIdentity.hidden=!cloudUser;if(cloudUser){headerReporter.textContent='신고자 '+(reporterName()||'이름 미등록');headerAccountEmail.textContent='계정: '+(cloudUser.email||'');editReporter.textContent=reporterName()?'✎ 신고자 이름 변경':'✎ 신고자 이름 등록'}const badge=document.getElementById('cloudConnection');if(badge)badge.hidden=!cloudUser}
 function scheduleCloudSave(){if(!cloudReady||!cloudUser)return;clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>void pushCloud(),850)}
