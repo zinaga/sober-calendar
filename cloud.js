@@ -105,6 +105,28 @@ async function pushCloud(){if(!cloudReady||!cloudUser)return;if(cloudBusy){sched
  const {error}=await cloudClient.from('sober_records').upsert({user_id:cloudUser.id,days:data,updated_at:new Date().toISOString()},{onConflict:'user_id'});
  if(error)throw error;cloudSetStatus('☁️ 동기화 완료 · '+new Date().toLocaleTimeString('ko-KR'));
 }catch(err){cloudSetStatus('동기화 실패: '+err.message+' · 로컬 기록은 남아 있어요. JSON 백업을 권장해요.')}finally{cloudBusy=false}}
+function downloadCloudSnapshot(days,source){
+ const blob=new Blob([JSON.stringify({app:'sober-calendar',version:1,days},null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;
+ a.download='sober-calendar-'+source+'-'+new Date().toISOString().slice(0,10)+'.json';
+ document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function chooseCloudConflict(local,remote,conflicts){
+ return new Promise(resolve=>{
+  const dlg=document.createElement('dialog');dlg.className='sync-conflict-dialog';
+  dlg.innerHTML='<form method="dialog"><h3>신고 기록 충돌 확인</h3><p>이 기기와 클라우드에서 '+conflicts.length+'일의 기록이 다릅니다. 선택 전에 각 기록을 JSON 파일로 내려받을 수 있어요.</p><div class="sync-conflict-actions"><button type="button" data-action="download-local">이 기기 기록 내려받기</button><button type="button" data-action="download-cloud">클라우드 기록 내려받기</button></div><p>겹치는 날짜에 어느 기록을 적용할까요?</p><div class="sync-conflict-actions"><button type="button" data-action="local">이 기기 기록 사용</button><button type="button" data-action="remote">클라우드 기록 사용</button><button type="button" data-action="cancel">나중에 결정</button></div></form>';
+  document.body.appendChild(dlg);let settled=false;
+  function finish(choice){if(settled)return;settled=true;dlg.close();dlg.remove();resolve(choice)}
+  dlg.addEventListener('cancel',e=>{e.preventDefault();finish(null)});
+  dlg.addEventListener('click',e=>{
+   const action=e.target.closest('button[data-action]')?.dataset.action;
+   if(action==='download-local')downloadCloudSnapshot(local,'device');
+   if(action==='download-cloud')downloadCloudSnapshot(remote,'cloud');
+   if(action==='local'||action==='remote')finish(action);
+   if(action==='cancel')finish(null);
+  });dlg.showModal();
+ });
+}
 async function pullCloud(){if(!cloudUser)return;cloudReady=false;cloudSetStatus('클라우드 기록을 확인하고 있어요…');try{
  const {data:record,error}=await cloudClient.from('sober_records').select('days').eq('user_id',cloudUser.id).maybeSingle();
  if(error)throw error;
@@ -114,12 +136,14 @@ async function pullCloud(){if(!cloudUser)return;cloudReady=false;cloudSetStatus(
  // When both sources contain different records for one date, preserve the cloud
  // version and keep a local recovery copy before merging.
  const conflicts=Object.keys(local).filter(k=>Object.prototype.hasOwnProperty.call(remote,k)&&JSON.stringify(local[k])!==JSON.stringify(remote[k]));
+ let priority='remote';
  if(conflicts.length){
   const backupKey='sober-calendar-recovery-'+cloudUser.id+'-'+Date.now();
   localStorage.setItem(backupKey,JSON.stringify(local));
-  cloudSetStatus('기록 차이 '+conflicts.length+'일: 클라우드 기록을 우선 적용하고 이 기기의 이전 기록을 복구용으로 보관했어요.');
+  priority=await chooseCloudConflict(local,remote,conflicts);
+  if(!priority){cloudSetStatus('기록 충돌 '+conflicts.length+'일 · 선택 전까지 동기화가 일시 중지됐어요. 다시 동기화 버튼을 눌러 결정할 수 있어요.');return}
  }
- data={...local,...remote};
+ data=priority==='local'?{...remote,...local}:{...local,...remote};
  localStorage.setItem(KEY,JSON.stringify(data));await pullCloudLimits();await pullCloudPledge();render();cloudReady=true;await pushCloud();
  }catch(err){cloudSetStatus('클라우드 불러오기 실패: '+err.message+' · 로컬 기록은 유지돼요.');cloudReady=false}}
 async function setupCloud(){
