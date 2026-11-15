@@ -485,7 +485,7 @@ function renderStats(){
   const recorded=days-counts.unknown;
   const minimum=days===90?21:7;
   if(recorded<minimum){
-   const notice=recorded===0?'아직 기록이 없어요.':'기록이 더 쌓이면 분석 결과가 표시돼요.';
+   const notice='기록이 더 쌓이면 분석 결과가 표시돼요. (최소 '+minimum+'일)';
    return `<div class="chartbox"><div class="chart-period"><span class="chart-accent" aria-hidden="true"></span><strong>${label} 음주 현황</strong></div><div class="stack frequency-empty" role="img" aria-label="데이터 부족">—</div><p class="frequency-empty-note">${notice}</p></div>`;
   }
   const bar=order.filter(k=>counts[k]).map(k=>{let pct=counts[k]/days*100;return `<div class="segment ${k==='unknown'?'segment-unknown':''}" title="${names[k]} ${counts[k]}일" style="width:${pct}%;background:${colors[k]};color:${k==='unknown'?'#193D65':'#FFFFFF'}">${counts[k]+'일'}</div>`}).join('');
@@ -629,7 +629,7 @@ function renderExtraStats(){
    return '<button type="button" class="trend-col trend-col-button" data-month-detail="'+x.label+'" aria-label="'+x.label+' 음주 강도 상세 보기"><span class="trend-value">'+total+'일</span><span class="trend-stack">'+pieces+'</span></button>';
   }).join('');
   const labels=months.map(x=>'<span>'+x.label+(x.current?' · 진행 중':'')+'</span>').join('');
-  const notices=months.map(x=>{
+  const notices=months.filter(x=>x.counts.missing>0).map(x=>{
    const c=x.counts;
    const status=x.label+' · 미기록 '+c.missing+'일'+(c.known<7?' · 최소 7일의 신고 기록 필요':'')+(c.unknown?' · 강도 판정 불가 '+c.unknown+'일':'');
    return '<div class="monthly-missing-row"><details class="missing-date-details"'+(c.missing===0?' data-no-missing="true"':'')+'><summary>'+status+'<svg class="missing-chevron" aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary><div class="missing-date-list"><span class="missing-date-label">미기록 날짜</span> '+c.missingDates.join(' · ')+'</div></details></div>';
