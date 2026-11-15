@@ -403,7 +403,6 @@ function renderExtraStats(){
   const weekly=enough?counts.drink/counts.known*7:null;
   const avg=n=>!enough?'—':counts.unknown>0?'판정 불가':(n/counts.known*7).toFixed(1)+'<small>일/주</small>';
   const status=counts.known===0?'신고된 날짜가 없습니다':counts.known<7?'기록 '+counts.known+'일 · 최소 7일의 신고 기록 필요':counts.known<length?'잠정 평균 · 기록 '+counts.known+'일 기준':'집계 완료 · 기록 '+counts.known+'일 기준';
-  const summary=weekly===null?(counts.known===0?'<strong>판정 불가</strong> · 기록 없음':'<strong>판정 불가</strong> · 데이터 부족'):'일주일에 평균 <strong>'+weekly.toFixed(1)+'일</strong> 음주';
   const summary=weekly===null?(counts.known===0?'판정 불가 · 기록 없음':'판정 불가 · 데이터 부족'):'<strong>'+weekly.toFixed(1)+'일</strong>';
   const details=[['가벼운 음주',avg(counts.light)],['주의 음주',avg(counts.half)],['과음',avg(counts.over)]].map(([name,value])=>'<span><span>'+name+'</span><b>'+value+'</b></span>').join('');
   return '<div class="weekly-report"><div class="weekly-report-top"><strong>'+label+'</strong><small>기록 '+counts.known+'/'+length+'일</small></div><p class="weekly-report-main">일주일에 평균 '+summary+' 음주</p><div class="weekly-report-stats">'+details+'</div></div><p class="analysis-metric-status analysis-overall-status">'+status+'</p>'+(counts.unknown?'<p class="analysis-note">주량 판정 불가: '+counts.unknown+'일 · '+counts.failures.map(x=>x.date+' ('+x.reason+')').join(', ')+'</p>':'');
