@@ -8,7 +8,7 @@ const cloudSync=document.getElementById('syncNow');
 const cloudEmail=document.getElementById('email');
 function updateCloudUI(){cloudLogin.hidden=!!cloudUser;cloudEmail.hidden=!!cloudUser;cloudLogout.hidden=!cloudUser;cloudSync.hidden=!cloudUser}
 function scheduleCloudSave(){if(!cloudReady||!cloudUser)return;clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>void pushCloud(),850)}
-async function pushCloud(){if(!cloudReady||!cloudUser||cloudBusy)return;cloudBusy=true;try{
+async function pushCloud(){if(!cloudReady||!cloudUser)return;if(cloudBusy){scheduleCloudSave();return}cloudBusy=true;try{
  const {error}=await cloudClient.from('sober_records').upsert({user_id:cloudUser.id,days:data,updated_at:new Date().toISOString()},{onConflict:'user_id'});
  if(error)throw error;cloudSetStatus('☁️ 동기화 완료 · '+new Date().toLocaleTimeString('ko-KR'));
 }catch(err){cloudSetStatus('동기화 실패: '+err.message+' · 로컬 기록은 남아 있어요. JSON 백업을 권장해요.')}finally{cloudBusy=false}}
@@ -17,10 +17,16 @@ async function pullCloud(){if(!cloudUser)return;cloudReady=false;cloudSetStatus(
  if(error)throw error;
  const remote=record?.days||{};
  const local=JSON.parse(localStorage.getItem(KEY)||'{}')||{};
- if(Object.keys(remote).length&&Object.keys(local).length&&JSON.stringify(remote)!==JSON.stringify(local)){
-  const choice=confirm('이 기기와 클라우드 기록이 달라요.\n\n확인: 클라우드 기록을 불러오기 (이 기기 기록 교체)\n취소: 이 기기 기록을 클라우드에 저장 (클라우드 기록 교체)\n\n먼저 JSON 백업을 권장해요.');
-  data=choice?remote:local;
- }else data=Object.keys(remote).length?remote:local;
+ // Merge by date rather than asking users to overwrite an entire device.
+ // When both sources contain different records for one date, preserve the cloud
+ // version and keep a local recovery copy before merging.
+ const conflicts=Object.keys(local).filter(k=>Object.prototype.hasOwnProperty.call(remote,k)&&JSON.stringify(local[k])!==JSON.stringify(remote[k]));
+ if(conflicts.length){
+  const backupKey='sober-calendar-recovery-'+cloudUser.id+'-'+Date.now();
+  localStorage.setItem(backupKey,JSON.stringify(local));
+  cloudSetStatus('기록 차이 '+conflicts.length+'일: 클라우드 기록을 우선 적용하고 이 기기의 이전 기록을 복구용으로 보관했어요.');
+ }
+ data={...local,...remote};
  localStorage.setItem(KEY,JSON.stringify(data));render();cloudReady=true;await pushCloud();
  }catch(err){cloudSetStatus('클라우드 불러오기 실패: '+err.message+' · 로컬 기록은 유지돼요.');cloudReady=false}}
 async function setupCloud(){
