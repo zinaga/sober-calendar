@@ -46,6 +46,33 @@ reporterForm.addEventListener('submit',async e=>{
 editReporter.addEventListener('click',openReporterEditor);
 headerReporterEdit.addEventListener('click',openReporterEditor);
 
+// Personal tolerance settings live in Supabase Auth user metadata, so no schema change is required.
+async function saveCloudLimits(limits){
+ if(!cloudClient||!cloudUser){cloudSetStatus('주량 설정이 이 기기에 저장됐어요. 로그인하면 계정에 동기화됩니다.');return}
+ try{
+  const {data:result,error}=await cloudClient.auth.updateUser({data:{personal_limits:limits}});
+  if(error)throw error;
+  cloudUser=result.user||cloudUser;
+  cloudSetStatus('개인 주량 설정이 계정에 동기화됐어요.');
+ }catch(err){cloudSetStatus('주량 설정 클라우드 저장 실패: '+err.message+' · 이 기기에는 저장돼 있어요.')}
+}
+async function pullCloudLimits(){
+ if(!cloudClient||!cloudUser)return;
+ const {data:result,error}=await cloudClient.auth.getUser();
+ if(error)throw error;
+ if(!result.user||result.user.id!==cloudUser.id)return;
+ cloudUser=result.user;
+ const remote=cloudUser.user_metadata?.personal_limits;
+ if(remote&&typeof remote==='object'&&!Array.isArray(remote)){
+  personalLimits=remote;
+  localStorage.setItem(LIMIT_KEY,JSON.stringify(remote));
+  renderExtraStats();
+ }else{
+  // Migrate existing browser settings only on first sync for this account.
+  // Empty settings must not create an empty cloud record that blocks future migration.
+  if(Object.keys(personalLimits||{}).length)await saveCloudLimits(personalLimits);
+ }
+}
 function updateCloudUI(){cloudLogin.hidden=!!cloudUser;cloudEmail.hidden=!!cloudUser;cloudLogout.hidden=!cloudUser;cloudSync.hidden=!cloudUser;editReporter.hidden=!cloudUser;headerIdentity.hidden=!cloudUser;if(cloudUser){headerReporter.textContent='신고자 '+(reporterName()||'이름 미등록');headerAccountEmail.textContent='계정: '+(cloudUser.email||'');editReporter.textContent=reporterName()?'✎ 신고자 이름 변경':'✎ 신고자 이름 등록'}const badge=document.getElementById('cloudConnection');if(badge)badge.hidden=!cloudUser}
 function scheduleCloudSave(){if(!cloudReady||!cloudUser)return;clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>void pushCloud(),850)}
 async function pushCloud(){if(!cloudReady||!cloudUser)return;if(cloudBusy){scheduleCloudSave();return}cloudBusy=true;try{
@@ -67,7 +94,7 @@ async function pullCloud(){if(!cloudUser)return;cloudReady=false;cloudSetStatus(
   cloudSetStatus('기록 차이 '+conflicts.length+'일: 클라우드 기록을 우선 적용하고 이 기기의 이전 기록을 복구용으로 보관했어요.');
  }
  data={...local,...remote};
- localStorage.setItem(KEY,JSON.stringify(data));render();cloudReady=true;await pushCloud();
+ localStorage.setItem(KEY,JSON.stringify(data));await pullCloudLimits();render();cloudReady=true;await pushCloud();
  }catch(err){cloudSetStatus('클라우드 불러오기 실패: '+err.message+' · 로컬 기록은 유지돼요.');cloudReady=false}}
 async function setupCloud(){
  if(!window.SOBER_SUPABASE_URL||!window.SOBER_SUPABASE_PUBLISHABLE_KEY){cloudSetStatus('클라우드 미설정 · 현재 브라우저에만 저장 중 (config.js 설정 필요)');return}
