@@ -356,7 +356,7 @@ function renderExtraStats(){
   }
   const enough=counts.known>=7;
   const weekly=enough?counts.drink/counts.known*7:null;
-  const avg=n=>enough?(n/counts.known*7).toFixed(1)+'일/주':'—';
+  const avg=n=>!enough?'—':counts.unknown>0?'판정 불가':(n/counts.known*7).toFixed(1)+'일/주';
   const status=counts.known===0?'신고된 날짜가 없습니다':counts.known<7?'기록 '+counts.known+'일 · 최소 7일의 신고 기록 필요':counts.known<length?'잠정 평균 · 기록 '+counts.known+'일 기준':'집계 완료 · 기록 '+counts.known+'일 기준';
   const summary=weekly===null?(counts.known===0?'<strong>판정 불가</strong> · 기록 없음':'<strong>판정 불가</strong> · 데이터 부족'):'일주일에 평균 <strong>'+weekly.toFixed(1)+'일</strong> 음주';
   return '<div class="weekly-report"><div class="weekly-report-top"><strong>'+label+'</strong><small>기록 '+counts.known+'/'+length+'일</small></div><p class="weekly-report-main">'+summary+'</p><p class="analysis-note">'+status+'</p><div class="weekly-report-stats"><span>가벼운 음주 <b>'+avg(counts.light)+'</b></span><span>주의 음주 <b>'+avg(counts.half)+'</b></span><span>과음 <b>'+avg(counts.over)+'</b></span></div>'+(counts.unknown?'<p class="analysis-note">주량 판정 불가: '+counts.unknown+'일</p>':'')+'</div>';
