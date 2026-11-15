@@ -104,7 +104,31 @@ async function setupCloud(){
  cloudClient.auth.onAuthStateChange((_event,session)=>{const old=cloudUser?.id;cloudUser=session?.user||null;updateCloudUI();if(cloudUser&&old!==cloudUser.id)setTimeout(()=>void pullCloud(),0);if(!cloudUser){cloudReady=false;cloudSetStatus('로그아웃됨 · 브라우저에만 저장 중')}});
  const {data:sessionInfo}=await cloudClient.auth.getSession();if(sessionInfo.session){cloudUser=sessionInfo.session.user;updateCloudUI();await pullCloud()}else cloudSetStatus('이메일로 로그인하면 클라우드 동기화가 시작돼요.');
 }
-cloudLogin.onclick=async()=>{loginSent.hidden=true;const email=cloudEmail.value.trim();if(!email){alert('이메일 주소를 입력해 주세요.');return}try{const {error}=await cloudClient.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});if(error)throw error;cloudSetStatus('로그인 링크를 이메일로 보냈어요. 메일에서 링크를 열어 주세요.');loginSent.hidden=false}catch(e){cloudSetStatus('로그인 오류: '+e.message)}};
+const LOGIN_COOLDOWN_KEY='sober-login-link-cooldown-until';
+let loginCooldownTimer=null,loginSending=false;
+function updateLoginCooldown(){
+ const remaining=Math.max(0,Math.ceil((Number(localStorage.getItem(LOGIN_COOLDOWN_KEY)||0)-Date.now())/1000));
+ if(loginCooldownTimer){clearInterval(loginCooldownTimer);loginCooldownTimer=null}
+ if(cloudUser){cloudLogin.disabled=false;return}
+ cloudLogin.disabled=loginSending||remaining>0;
+ cloudLogin.textContent=remaining>0?'다시 보내기 ('+remaining+'초)':'이메일 로그인 링크 보내기';
+ if(remaining>0)loginCooldownTimer=setInterval(updateLoginCooldown,1000);
+}
+cloudLogin.onclick=async()=>{
+ if(loginSending||Number(localStorage.getItem(LOGIN_COOLDOWN_KEY)||0)>Date.now())return;
+ loginSent.hidden=true;
+ const email=cloudEmail.value.trim();if(!email){alert('이메일 주소를 입력해 주세요.');return}
+ loginSending=true;cloudLogin.disabled=true;cloudLogin.textContent='전송 중…';
+ try{
+  const {error}=await cloudClient.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
+  if(error)throw error;
+  localStorage.setItem(LOGIN_COOLDOWN_KEY,String(Date.now()+60000));
+  cloudSetStatus('로그인 링크를 이메일로 보냈어요. 메일에서 링크를 열어 주세요.');
+  loginSent.hidden=false;
+ }catch(e){cloudSetStatus('로그인 오류: '+e.message)}
+ finally{loginSending=false;updateLoginCooldown()}
+};
+updateLoginCooldown();
 cloudLogout.onclick=async()=>{if(cloudClient)await cloudClient.auth.signOut()};
 cloudSync.onclick=async()=>{if(cloudUser&&!cloudBusy)await pullCloud()};
 void setupCloud();
