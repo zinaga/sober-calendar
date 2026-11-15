@@ -377,7 +377,7 @@ header.system-header{padding-top:20px;padding-bottom:20px}
 /* Indent analysis subsections to clarify hierarchy below section 02. */
 .analysis-subsection-title{padding-left:14px;box-sizing:border-box}
 @media(max-width:650px){.analysis-subsection-title{padding-left:14px}}
-.pledge-display>span:not(.pledge-placeholder){font-size:16px;font-weight:600;line-height:1.6}
+.pledge-display>span:not(.pledge-placeholder){font-size:14px;font-weight:400;line-height:1.7;text-align:center;flex:1;white-space:normal}
 /* Pledge editing: clearly distinguish save from destructive reset. */
 .pledge-form .pledge-save{background:#193D65;color:#fff;border:1px solid #193D65}
 .pledge-form .pledge-save:hover{background:#285583}
@@ -479,7 +479,7 @@ const pledgeInput=document.getElementById('pledgeInput'),pledgeCancel=document.g
 const pledgeFeedback=document.getElementById('pledgeFeedback');
 const pledgeReset=document.getElementById('pledgeReset');
 function renderPledge(){
- pledgeText.textContent=personalPledge?'“'+personalPledge+'”':'예: 습관적인 음주와 과음을 줄이겠습니다.';
+ pledgeText.textContent=personalPledge?'「 '+personalPledge+' 」':'예: 습관적인 음주와 과음을 줄이겠습니다.';
  pledgeText.classList.toggle('pledge-placeholder',!personalPledge);
  pledgeEdit.textContent=personalPledge?'✎ 수정':'✎ 작성';
  pledgeReset.hidden=!personalPledge;
