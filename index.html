@@ -493,7 +493,7 @@ function renderStats(){
   const recorded=days-counts.unknown;
   const minimum=days===90?21:7;
   if(recorded<minimum){
-   const notice='기록이 더 쌓이면 분석 결과가 표시돼요. (최소 '+minimum+'일)';
+   const notice='기록 '+recorded+'/'+minimum+'일 · 기록이 더 쌓이면 분석 결과가 표시돼요.';
    return `<div class="chartbox"><div class="chart-period"><span class="chart-accent" aria-hidden="true"></span><strong>${label} 음주 현황</strong></div><div class="stack frequency-empty" role="img" aria-label="데이터 부족">—</div><p class="frequency-empty-note">${notice}</p></div>`;
   }
   const bar=order.filter(k=>counts[k]).map(k=>{let pct=counts[k]/days*100;return `<div class="segment ${k==='unknown'?'segment-unknown':''}" title="${names[k]} ${counts[k]}일" style="width:${pct}%;background:${colors[k]};color:${k==='unknown'?'#193D65':'#FFFFFF'}">${counts[k]+'일'}</div>`}).join('');
