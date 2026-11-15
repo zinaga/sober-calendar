@@ -6,7 +6,31 @@ const cloudLogin=document.getElementById('login');
 const cloudLogout=document.getElementById('logout');
 const cloudSync=document.getElementById('syncNow');
 const cloudEmail=document.getElementById('email');
-function updateCloudUI(){cloudLogin.hidden=!!cloudUser;cloudEmail.hidden=!!cloudUser;cloudLogout.hidden=!cloudUser;cloudSync.hidden=!cloudUser;const badge=document.getElementById('cloudConnection');if(badge)badge.hidden=!cloudUser}
+const editReporter=document.getElementById('editReporter');
+const headerIdentity=document.getElementById('headerIdentity');
+const headerReporter=document.getElementById('headerReporter');
+const headerAccountEmail=document.getElementById('headerAccountEmail');
+function reporterName(){return String(cloudUser?.user_metadata?.reporter_name||'').trim()}
+async function changeReporterName(){
+ if(!cloudUser||!cloudClient)return;
+ const value=window.prompt('신고자 이름을 입력해 주세요. (언제든 변경할 수 있습니다)',reporterName());
+ if(value===null)return;
+ const name=value.trim();
+ if(!name){alert('이름을 입력해 주세요.');return}
+ if(name.length>40){alert('이름은 40자 이내로 입력해 주세요.');return}
+ editReporter.disabled=true;
+ try{
+  const {data:result,error}=await cloudClient.auth.updateUser({data:{reporter_name:name}});
+  if(error)throw error;
+  cloudUser=result.user||cloudUser;
+  updateCloudUI();
+  cloudSetStatus('신고자 이름이 저장됐어요. 모든 기기에서 같은 이름을 사용합니다.');
+ }catch(e){cloudSetStatus('이름 저장 실패: '+e.message)}
+ finally{editReporter.disabled=false}
+}
+editReporter.onclick=()=>void changeReporterName();
+
+function updateCloudUI(){cloudLogin.hidden=!!cloudUser;cloudEmail.hidden=!!cloudUser;cloudLogout.hidden=!cloudUser;cloudSync.hidden=!cloudUser;editReporter.hidden=!cloudUser;headerIdentity.hidden=!cloudUser;if(cloudUser){headerReporter.textContent='신고자 '+(reporterName()||'이름 미등록');headerAccountEmail.textContent='계정: '+(cloudUser.email||'');editReporter.textContent=reporterName()?'✎ 신고자 이름 변경':'✎ 신고자 이름 등록'}const badge=document.getElementById('cloudConnection');if(badge)badge.hidden=!cloudUser}
 function scheduleCloudSave(){if(!cloudReady||!cloudUser)return;clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>void pushCloud(),850)}
 async function pushCloud(){if(!cloudReady||!cloudUser)return;if(cloudBusy){scheduleCloudSave();return}cloudBusy=true;try{
  const {error}=await cloudClient.from('sober_records').upsert({user_id:cloudUser.id,days:data,updated_at:new Date().toISOString()},{onConflict:'user_id'});
