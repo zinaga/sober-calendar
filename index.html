@@ -330,7 +330,7 @@ function renderEditor(){
  h+='<button class="primary compact-add-session" id="addSession">'+(sessions.length?'+ 음주 내역 추가 신고':'+ 음주 내역 신고')+'</button>';
  document.getElementById('editor').innerHTML=h;
  document.querySelectorAll('[data-delete-session]').forEach(b=>b.onclick=()=>{let a=structuredClone(editorDraftKey===selected&&editorDraft?editorDraft:getDay(selected));a.sessions.splice(+b.dataset.deleteSession,1);editDay(selected,a.sessions.length?{status:'drink',sessions:a.sessions}:{status:'unknown',sessions:[]})});
- document.getElementById('saveDay')?.addEventListener('click',()=>{if(editorDraftKey===selected&&editorDraft){const v=editorDraft;editorDraft=null;editorDraftKey=null;setDay(selected,v)}});
+ document.getElementById('saveDay')?.addEventListener('click',e=>{e.stopPropagation();if(editorDraftKey===selected&&editorDraft){const v=editorDraft;editorDraft=null;editorDraftKey=null;setDay(selected,v)}else{renderEditor()}});
  document.getElementById('cancelDay')?.addEventListener('click',()=>{editorDraft=null;editorDraftKey=null;renderEditor()});
  document.getElementById('addSession').onclick=()=>{let a=structuredClone(editorDraftKey===selected&&editorDraft?editorDraft:getDay(selected));if(a.status==='dry'&&!confirm('금주 체크를 해제하고 음주 세션을 추가할까요?'))return;let ss=a.status==='drink'?(a.sessions||[]):[];ss.push(newSession());editDay(selected,{status:'drink',sessions:ss})};
  document.querySelectorAll('[data-add-drink]').forEach(b=>b.onclick=()=>{let a=structuredClone(editorDraftKey===selected&&editorDraft?editorDraft:getDay(selected));a.sessions[+b.dataset.addDrink].drinks.push({type:'beer',unit:'smallcan',qty:1});editDay(selected,a)});
