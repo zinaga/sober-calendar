@@ -318,7 +318,7 @@ function renderStats(){
 
 const LIMIT_KEY='sober-personal-limits-v1';
 let personalLimits={};try{personalLimits=JSON.parse(localStorage.getItem(LIMIT_KEY)||'{}')||{}}catch{}
-const mlUnits={beer:{smallcan:355,largecan:500,bottle:330,glass:500,ml:1},wine:{glass:150,half:375,bottle:750,ml:1},soju:{shot:50,half:180,bottle:360,ml:1},liquor:{glass:45,half:350,bottle:700,ml:1},cheongju:{glass:50,half:375,bottle:750,ml:1},takju:{glass:200,half:375,bottle:750,ml:1},sake:{glass:50,half:375,bottle:750,ml:1},other:{glass:200,bottle:500,ml:1}};
+const mlUnits={beer:{smallcan:355,largecan:500,bottle:330,glass:500,ml:1},wine:{glass:150,half:375,bottle:750,ml:1},soju:{shot:50,half:180,bottle:360,ml:1},liquor:{shot:45,glass:45,half:350,bottle:700,ml:1},cheongju:{glass:50,half:375,bottle:750,ml:1},takju:{glass:200,half:375,bottle:750,ml:1},sake:{glass:50,half:375,bottle:750,ml:1},other:{glass:200,bottle:500,ml:1}};
 function limitType(t){return ['whisky','cocktail','spirits'].includes(t)?'liquor':t}
 function limitMl(t,u,q){return (mlUnits[limitType(t)]?.[u]||0)*Number(q||0)}
 
