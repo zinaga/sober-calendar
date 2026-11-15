@@ -29,6 +29,8 @@ async function changeReporterName(){
  finally{editReporter.disabled=false}
 }
 editReporter.onclick=()=>void changeReporterName();
+const headerReporterEdit=document.getElementById('headerReporterEdit');
+headerReporterEdit.onclick=()=>void changeReporterName();
 
 function updateCloudUI(){cloudLogin.hidden=!!cloudUser;cloudEmail.hidden=!!cloudUser;cloudLogout.hidden=!cloudUser;cloudSync.hidden=!cloudUser;editReporter.hidden=!cloudUser;headerIdentity.hidden=!cloudUser;if(cloudUser){headerReporter.textContent='신고자 '+(reporterName()||'이름 미등록');headerAccountEmail.textContent='계정: '+(cloudUser.email||'');editReporter.textContent=reporterName()?'✎ 신고자 이름 변경':'✎ 신고자 이름 등록'}const badge=document.getElementById('cloudConnection');if(badge)badge.hidden=!cloudUser}
 function scheduleCloudSave(){if(!cloudReady||!cloudUser)return;clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>void pushCloud(),850)}
