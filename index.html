@@ -470,7 +470,6 @@ function renderStats(){
  const names={after:'귀가 후 추가 음주',solo:'혼술',with:'술자리',mixed:'혼술+술자리',dry:'금주',unknown:'미기록'};
  const order=['solo','with','after','dry','unknown'];
  const todayDate=new Date(now.getFullYear(),now.getMonth(),now.getDate());
- const recent30Known=Array.from({length:30},(_,i)=>{const d=analysisDate(i);const v=getDay(key(d));return v.status==='dry'||(v.status==='drink'&&(v.sessions||[]).length>0)}).filter(Boolean).length;
  function oneWindow(days,label){
   const counts={after:0,solo:0,with:0,mixed:0,dry:0,unknown:0};
   for(let i=days-1;i>=0;i--){const date=analysisDate(i);const v=getDay(key(date));
@@ -481,8 +480,10 @@ function renderStats(){
    const solo=sessions.some(x=>x.company==='solo'),withOthers=sessions.some(x=>x.company!=='solo');
    counts[withOthers?'with':'solo']++;
   }
-  if(recent30Known<7){
-   const notice=recent30Known===0?'아직 기록이 없어요.':'기록이 더 쌓이면 분석 결과가 표시돼요.';
+  const recorded=days-counts.unknown;
+  const minimum=days===90?21:7;
+  if(recorded<minimum){
+   const notice=recorded===0?'아직 기록이 없어요.':'기록이 더 쌓이면 분석 결과가 표시돼요.';
    return `<div class="chartbox"><div class="chart-period"><span class="chart-accent" aria-hidden="true"></span><strong>${label} 음주 현황</strong></div><div class="stack frequency-empty" role="img" aria-label="데이터 부족">—</div><p class="frequency-empty-note">${notice}</p></div>`;
   }
   const bar=order.filter(k=>counts[k]).map(k=>{let pct=counts[k]/days*100;return `<div class="segment ${k==='unknown'?'segment-unknown':''}" title="${names[k]} ${counts[k]}일" style="width:${pct}%;background:${colors[k]};color:${k==='unknown'?'#193D65':'#FFFFFF'}">${counts[k]+'일'}</div>`}).join('');
