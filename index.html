@@ -178,11 +178,11 @@ button.primary:hover,.session-actions button.primary:hover,.calendar-panel .bulk
 :root{
  --ui-navy:#193D65;--ui-blue:#315F91;--ui-blue-soft:#E7F0FA;--ui-blue-border:#9CB9D9;
  --ui-text:#233047;--ui-muted:#64748B;--ui-canvas:#F5F7FB;--ui-border:#DCE3EE;
- --solo-main:#D9A441;--solo-border:#E8C782;--solo-chip:#FFF1D5;--solo-bg:#FFFBF3;
- --with-main:#8997AB;--with-border:#B9C5D5;--with-chip:#EDF2F9;--with-bg:#F7F9FC;
- --after-main:#CC454F;--after-border:#ECAAB1;--after-chip:#FFF0F1;--after-bg:#FFF8F8;
- --dry-main:#3D6190;--dry-border:#A5BDDD;--dry-chip:#D0E0F3;--dry-bg:#EAF1FA;
- --unknown-main:#B5BECC;--unknown-border:#DCE3EE;--unknown-chip:#E8EDF4;--unknown-bg:#F5F7FB;
+ --solo-main:#D7A334;--solo-border:#E8CA88;--solo-chip:#FFF1D5;--solo-bg:#FFFBF3;
+ --with-main:#3D9489;--with-border:#A4D2CB;--with-chip:#E4F4F1;--with-bg:#F3FAF8;
+ --after-main:#C54B55;--after-border:#E9ADB3;--after-chip:#FFF0F1;--after-bg:#FFF8F8;
+ --dry-main:#41618F;--dry-border:#A7BBDD;--dry-chip:#D0E0F3;--dry-bg:#EAF1FA;
+ --unknown-main:#B7C0CE;--unknown-border:#DCE3EE;--unknown-chip:#E8EDF4;--unknown-bg:#F5F7FB;
 }
 body{background:var(--ui-canvas)}
 .day.kind-dry{background:var(--dry-bg)!important;border:1px solid var(--dry-border)!important}
@@ -341,7 +341,7 @@ function renderMonthSummary(){
 function render(){if(editorDraftKey!==selected){editorDraft=null;editorDraftKey=null}document.getElementById('month').textContent=`${year}년 ${month+1}월`;let first=new Date(year,month,1).getDay(),length=new Date(year,month+1,0).getDate(),html=['일','월','화','수','목','금','토'].map(x=>`<div class="weekday">${x}</div>`).join('');for(let i=0;i<first;i++)html+='<div class="day empty"></div>';for(let d=1;d<=length;d++){let k=key(new Date(year,month,d)),v=getDay(k);let sessions=v.sessions||[],solo=sessions.some(x=>x.company==='solo'),withOthers=sessions.some(x=>x.company!=='solo'),kind=v.status==='dry'?'dry':v.status!=='drink'||!sessions.length?'unknown':withOthers?'with':'solo';let overDay=v.status==='drink'&&sessions.length>0&&dailyLimitRatio(v)>=1;let pills=v.status==='dry'?'<span class="pill dry">✓ 금주</span>':v.status==='drink'?v.sessions.map(s=>`<span class="pill ${s.after?'after':s.company==='solo'?'solo':''}">${s.after?'🔴 추가 음주 · ':s.company==='solo'?'🏠 혼술 · ':'🍻 함께 · '}<span class="drinkdetail">${(s.drinks||[]).map(shortDrink).map(esc).join('<br>')||'술 미입력'}</span></span>`).join(''):'<span class="pill unknown">미기록</span>';html+=`<div class="day ${k===today?'today':''} ${k===selected?'selected':''} kind-${kind} ${overDay?'kind-over':''} ${multiSelected.has(k)?'multi-selected':''}"><button type="button" class="day-main" data-day="${k}"><span class="number">${d}${k===today?'<span class="today-badge">오늘</span>':''}${overDay?'<span class="over-day-badge">과음</span>':''}</span>${pills}</button></div>`}document.getElementById('calendar').innerHTML=html;renderMonthSummary();document.querySelectorAll('[data-day]').forEach(b=>b.onclick=e=>{const k=b.dataset.day;if(e.shiftKey){const anchor=selectionAnchor||selected||k;const start=new Date(anchor+'T12:00:00');const end=new Date(k+'T12:00:00');if(!(e.ctrlKey||e.metaKey))multiSelected.clear();const lo=start<end?start:end,hi=start<end?end:start;for(let t=new Date(lo);t<=hi;t.setDate(t.getDate()+1)){const tk=key(t);if(tk<=key(new Date()))multiSelected.add(tk);}}else if(e.ctrlKey||e.metaKey){if(multiSelected.has(k))multiSelected.delete(k);else if(k<=key(new Date()))multiSelected.add(k);selectionAnchor=k;}else{selected=k;selectionAnchor=k;multiSelected.clear();if(k<=key(new Date()))multiSelected.add(k);}render()});updateBulk();renderStats();renderEditor()}
 document.addEventListener('click',e=>{if(e.target.closest('.day-main, .bulkbar, .detail-subsection, .nav'))return;if(!multiSelected.size&&!selected)return;if(editorDraftKey===selected&&editorDraft){return;}multiSelected.clear();selectionAnchor=null;selected=null;render()});
 function renderStats(){
- const colors={after:'#CC454F',solo:'#D9A441',with:'#8997AB',mixed:'#8997AB',dry:'#3D6190',unknown:'#B5BECC'};
+ const colors={after:'#C54B55',solo:'#D7A334',with:'#3D9489',mixed:'#3D9489',dry:'#41618F',unknown:'#B7C0CE'};
  const names={after:'추가 음주',solo:'혼술',with:'함께 음주',mixed:'혼술+함께',dry:'금주',unknown:'미기록'};
  const order=['solo','with','after','dry','unknown'];
  const todayDate=new Date(now.getFullYear(),now.getMonth(),now.getDate());
