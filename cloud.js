@@ -38,5 +38,5 @@ async function setupCloud(){
 }
 cloudLogin.onclick=async()=>{const email=cloudEmail.value.trim();if(!email){alert('이메일 주소를 입력해 주세요.');return}try{const {error}=await cloudClient.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});if(error)throw error;cloudSetStatus('로그인 링크를 이메일로 보냈어요. 메일에서 링크를 열어 주세요.')}catch(e){cloudSetStatus('로그인 오류: '+e.message)}};
 cloudLogout.onclick=async()=>{if(cloudClient)await cloudClient.auth.signOut()};
-cloudSync.onclick=async()=>{if(cloudReady)await pushCloud()};
+cloudSync.onclick=async()=>{if(cloudUser&&!cloudBusy)await pullCloud()};
 void setupCloud();
