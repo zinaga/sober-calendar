@@ -588,10 +588,11 @@ function renderExtraStats(){
    const ratio=dailyLimitRatio(v);
    if(ratio===null){counts.unknown++;counts.failures.push({date:key(date),reason:limitFailureReason(v)})}else if(ratio>=1)counts.over++;else if(ratio>.5)counts.half++;else counts.light++;
   }
-  const enough=counts.known>=7;
+  const minimum=length===90?21:7;
+  const enough=counts.known>=minimum;
   const weekly=enough?counts.drink/counts.known*7:null;
   const avg=n=>!enough?'—':(n/counts.known*7).toFixed(1)+'<small>일/주</small>';
-  const status=counts.known===0?'신고된 날짜가 없습니다':counts.known<7?'기록 '+counts.known+'일 · 최소 7일의 신고 기록 필요':counts.known<length?'미기록 '+counts.missingDates.length+'일 제외':'집계 완료 · 기록 '+counts.known+'일 기준';
+  const status=counts.known===0?'신고된 날짜가 없습니다':counts.known<minimum?'기록 '+counts.known+'일 · 최소 '+minimum+'일의 신고 기록 필요':counts.known<length?'미기록 '+counts.missingDates.length+'일 제외':'집계 완료 · 기록 '+counts.known+'일 기준';
   const missingInfo=counts.missingDates.length?'<details class="missing-date-details"><summary>'+status+'<svg class="missing-chevron" aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary><div class="missing-date-list"><span class="missing-date-label">미기록 날짜</span> '+counts.missingDates.join(' · ')+'</div></details>':'<p class="analysis-metric-status analysis-overall-status">'+status+'</p>';
   const summary=weekly===null?(counts.known===0?'판정 불가 · 기록 없음':'판정 불가 · 데이터 부족'):'<strong>'+weekly.toFixed(1)+'일</strong>';
   const details=[['가벼운 음주',avg(counts.light)],['주의 음주',avg(counts.half)],['과음',avg(counts.over)]].map(([name,value])=>'<span><span>'+name+'</span><b>'+value+'</b></span>').join('');
