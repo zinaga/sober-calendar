@@ -496,7 +496,7 @@ function renderExtraStats(){
  function weeklyWindow(length,label){
   const counts={light:0,half:0,over:0,unknown:0,known:0,drink:0,failures:[],missingDates:[]};
   for(let i=length-1;i>=0;i--){
-   const date=new Date(now.getFullYear(),now.getMonth(),now.getDate()-i),v=getDay(key(date));
+   const date=new Date(now.getFullYear(),now.getMonth(),now.getDate()-i-1),v=getDay(key(date));
    if(v.status==='unknown'||(v.status==='drink'&&!(v.sessions||[]).length)){counts.missingDates.push(key(date));continue;}
    counts.known++;
    if(v.status!=='drink')continue;
